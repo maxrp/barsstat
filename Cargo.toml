@@ -1,0 +1,8 @@
+[package]
+name = "barsstat"
+version = "0.0.1"
+authors = [ "Max Parmer <maxp@trystero.is>" ]
+build = "make -C current_desktop"
+
+[[bin]]
+name = "barsstat"
