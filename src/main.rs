@@ -53,6 +53,7 @@ fn format_date(time_struct: Tm) -> String {
         1 => "Feb",
         2 => "Mar",
         3 => "Apr",
+        4 => "May",
         5 => "Jun",
         6 => "Jul",
         7 => "Aug",
