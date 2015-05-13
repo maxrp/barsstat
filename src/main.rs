@@ -1,9 +1,12 @@
+#![feature(libc)]
+
 extern crate libc;
 extern crate time;
 
-use std::io::File;
-use std::io::timer::sleep;
-use std::time::duration::Duration;
+use std::fs::File;
+use std::path::Path;
+use std::io::Read;
+use std::thread::sleep_ms;
 use time::{Tm,now,now_utc};
 
 #[link(name = "current_desktop")]
@@ -12,29 +15,24 @@ extern {
     fn cur_desk(display: libc::c_int) -> libc::c_int;
 }
 
-fn current_desktop(display: i32) -> uint { 
+fn current_desktop(display: i32) -> i32 {
     let desk: i32 = unsafe {
         cur_desk(display)
     };
     return match desk {
         127i32 => panic!("Cannot get current desktop."),
-        _ => desk as uint,
+        _ => desk,
     };
 }
 
 fn read_bat(path: &str) -> f32 {
     let bat_path = Path::new(path);
     let bat_path_display = bat_path.display();
-    let mut file = match File::open(&bat_path) {
-        Err(why) => panic!("Could not open {}: {}", bat_path_display, why.desc),
-        Ok(file) => file,
-    };
-    let string = match file.read_to_string() {
-        Err(why) => panic!("Could not read {}: {}", bat_path_display, why.desc),
-        Ok(string) => string,
-    };
-
-    from_str(string.as_slice().trim()).unwrap()
+    let mut file: File = File::open(&bat_path).unwrap_or_else(|err|
+        panic!("Failed to open {}: {}", bat_path_display, err));
+    let mut bat_status = String::new();
+    let _ = file.read_to_string(&mut bat_status);
+    bat_status.trim().parse::<f32>().unwrap()
 }
 
 fn format_date(time_struct: Tm) -> String {
@@ -63,7 +61,7 @@ fn format_date(time_struct: Tm) -> String {
        11 => "Dec",
         _ => panic!("Not a month!")
     };
-    return format!("{:s} {:s} {:02d} {:02d}:{:02d}:{:02d}",
+    return format!("{} {} {:02} {:02}:{:02}:{:02}",
                    day,
                    month,
                    time_struct.tm_mday,
@@ -72,14 +70,14 @@ fn format_date(time_struct: Tm) -> String {
                    time_struct.tm_sec);
 }
 
-fn format_desktops(desktop: uint) -> String {
+fn format_desktops(desktop: i32) -> String {
     let desktops = [ " One ", " Two ", " Three ", " Four ", " Five " ];
 
     let mut desktop_list = String::new();
 
-    for i in range(0, desktops.len()) {
-        if i == desktop {
-            desktop_list.push_str(colorize(desktops[i], "F#ffb58900").as_slice());
+    for i in (0..desktops.len()) {
+        if i == desktop as usize {
+            desktop_list.push_str(&colorize(desktops[i], "F#ffb58900"));
         } else {
             desktop_list.push_str(desktops[i]);
         }
@@ -111,6 +109,6 @@ fn main(){
                 position(times, "c"),
                 position(battery_status, "r"));
 
-        sleep(Duration::seconds(1));
+        sleep_ms(1000);
     }
 }
